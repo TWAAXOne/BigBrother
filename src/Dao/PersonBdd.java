@@ -5,21 +5,26 @@ import org.neo4j.driver.Result;
 import java.util.List;
 import java.util.Random;
 
-public class PersonBdd {
-    private static final String FILENAME_LST_PERSON = "personne_data.csv";
-    private static final int NB_AMIS_MIN = 1;
-    public static List<String[]> getListPerson() { return Bdd.getList(FILENAME_LST_PERSON); }
+public class PersonBdd{
+    private static final String FILENAME = "personne_data.csv";
+    private Bdd bdd;
+    private int nbAmisMin;
+    private int nbAmisMax;
 
-    public static void deleteUserBdd() {
-        Bdd bdd = Bdd.getInstance();
-        bdd.connect();
+    public PersonBdd(Bdd bdd, int nbAmisMin, int nbAmisMax) {
+        this.bdd = bdd;
+        this.nbAmisMin = nbAmisMin;
+        this.nbAmisMax = nbAmisMax;
+    }
+
+    public static List<String[]> getListPerson() { return Bdd.getList(FILENAME); }
+
+    public void deleteUserBdd() {
         System.out.println("Suppression des personnes");
         bdd.run("MATCH (p:Person) DELETE p");
     }
-    public static void createUser() {
-         deleteUserBdd();
-        Bdd bdd = Bdd.getInstance();
-        bdd.connect();
+    public void createUser() {
+        deleteRelation();
         System.out.println("Création des personnes");
         for (String[] data : getListPerson()) {
             Result res = bdd.run("CREATE (p:Person{" +
@@ -32,29 +37,35 @@ public class PersonBdd {
                     ", address:'" + data[6] + "'" +
                     "})");
         }
-        bdd.close();
         System.out.println("Fin créations personnes");
     }
 
-    /*
-    match(p1:Person{first_name:'Wilmer', last_name:'McRonald'}), (p2:Person{first_name:'Phillis', last_name:'Sheach'})
-    create (p1) -[r:AMIS_AVEC]-> (p2) return p1, p2,r
-     */
-    public static void deleteRelationFriend() {
-        Bdd bdd = Bdd.getInstance();
-        bdd.connect();
+    public void deleteRelation() {
         bdd.run("MATCH p=()-->() DELETE p");
-        bdd.close();
     }
 
-    public static void createRelationFriend() {
+    public void deleteRelationFriend() {
+        bdd.run("MATCH p=()-[r:AMIS_AVEC]->() DELETE r");
+    }
+
+    public void deleteRelationCompany() {
+        bdd.run("MATCH p=()-[r:TRAVAILLE]->() DELETE r");
+    }
+
+    public void deleteRelationPratique() {
+        bdd.run("MATCH p=()-[r:PRATIQUE]->() DELETE r");
+    }
+
+    public void deleteRelationFrequenteRestaurant() {
+        bdd.run("MATCH p=()-[r:FREQUENTE_RESTAURANT]->() DELETE r");
+    }
+
+    public void createRelationFriend() {
         deleteRelationFriend();
-        Bdd bdd = Bdd.getInstance();
-        bdd.connect();
-        System.out.println("Création des relations");
+        System.out.println("Création des relations Friend");
         for (String[] data : getListPerson()) {
-            int nbAmis = new Random().nextInt(5) + NB_AMIS_MIN;  // [1...5] [min = 1, max = 5]);
-            for (int c = NB_AMIS_MIN; c < nbAmis; c++) {
+            int nbAmis = new Random().nextInt(nbAmisMax) + nbAmisMin;  // [1...5] [min = 1, max = 5]);
+            for (int c = nbAmisMin; c <= nbAmis; c++) {
                 int noAmis = new Random().nextInt(getListPerson().size());
                 String[] dataAmis = getListPerson().get(noAmis);
                 bdd.run("MATCH(p1:Person{" +
@@ -67,8 +78,67 @@ public class PersonBdd {
                     );
             }
         }
-        bdd.close();
-        System.out.println("Fin des relations");
+        System.out.println("Fin des relations Friend");
     }
+
+    public void createRelationCompany() {
+        deleteRelationCompany();
+        System.out.println("Création des relations Personne - Compagnie");
+        for (String[] dataPersonne : getListPerson()) {
+            int noCompany = new Random().nextInt(CompanyBdd.getListCompany().size());
+            String[] dataCompany = CompanyBdd.getListCompany().get(noCompany);
+            bdd.run("MATCH(p:Person{" +
+                    "first_name:'" + dataPersonne[0] + "', " +
+                    "last_name:'" + dataPersonne[1] + "'}), " +
+                    "(c:Company{" +
+                    "company_name:'" + dataCompany[0] + "'}) " +
+                    "CREATE (p) -[r:TRAVAILLE]-> (c)"
+            );
+        }
+        System.out.println("Fin création Personne - Compagnie");
+    }
+
+    public void createRelationPratique() {
+        deleteRelationPratique();
+        System.out.println("Création des relations Personne - Activity");
+        for (String[] dataPersonne : getListPerson()) {
+            int nbActivity = new Random().nextInt(3) + 1;
+            for (int c = 1; c <= nbActivity; c++) {
+                int noActivity = new Random().nextInt(ActivityBdd.getListActivity().size());
+                String[] activity = ActivityBdd.getListActivity().get(noActivity);
+                bdd.run("MATCH(p:Person{" +
+                        "first_name:'" + dataPersonne[0] + "', " +
+                        "last_name:'" + dataPersonne[1] + "'}), " +
+                        "(a:Activity{" +
+                        "name:'" + activity[0] + "'}) " +
+                        "CREATE (p) -[r:PRATIQUE]-> (a)"
+                );
+            }
+        }
+        System.out.println("Fin créations des relations");
+    }
+
+
+    public void createRelationFrequenteRestaurant() {
+        deleteRelationFrequenteRestaurant();
+        System.out.println("Création des relations Personne - Restaurant");
+        for (String[] dataPersonne : getListPerson()) {
+            int nbRestaurant = new Random().nextInt(3) + 1;
+            for (int c = 1; c <= nbRestaurant; c++) {
+                int noRestaurant = new Random().nextInt(RestaurantBdd.getListRestaurant().size());
+                String[] activity = RestaurantBdd.getListRestaurant().get(noRestaurant);
+                bdd.run("MATCH(p:Person{" +
+                        "first_name:'" + dataPersonne[0] + "', " +
+                        "last_name:'" + dataPersonne[1] + "'}), " +
+                        "(rest:Restaurant{" +
+                        "name:'" + activity[0] + "'}) " +
+                        "CREATE (p) -[r:FREQUENTE_RESTAURANT]-> (rest)"
+                );
+            }
+        }
+        System.out.println("Fin créations des relations");
+    }
+
+
 }
 

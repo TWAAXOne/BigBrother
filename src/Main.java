@@ -1,24 +1,27 @@
-import Dao.CompanyBdd;
-import Dao.PersonBdd;
-
-import java.util.Random;
+import Dao.*;
 
 public class Main {
     public static void main(String[] args) {
-        /*
+        createDataBase();
+    }
+
+    public static void createDataBase() {
         Bdd bdd = new Bdd();
         bdd.connect();
-        Result res = bdd.run("MATCH (p:Person) RETURN p");
-        while (res.hasNext()) {
-            Record rec = res.next();
-            System.out.println(rec.get("p").get("name"));
-        }
+        PersonBdd personBdd = new PersonBdd(bdd, 1, 4);
+        CompanyBdd companyBdd = new CompanyBdd(bdd);
+        ActivityBdd activityBdd = new ActivityBdd(bdd);
+        RestaurantBdd restaurantBdd = new RestaurantBdd(bdd);
 
-         */
+        personBdd.createUser();
+        companyBdd.createBddActivity();
+        activityBdd.createActivity();
+        restaurantBdd.createRestaurant();
 
-        PersonBdd.createUser();
-        CompanyBdd.createBdd();
-        PersonBdd.createRelationFriend();
-
+        personBdd.createRelationFriend();
+        personBdd.createRelationCompany();
+        personBdd.createRelationPratique();
+        personBdd.createRelationFrequenteRestaurant();
+        bdd.close();
     }
 }

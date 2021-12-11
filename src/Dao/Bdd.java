@@ -11,16 +11,6 @@ public class Bdd {
     private Driver driver;
     private Session session;
 
-    private Bdd() { }
-
-    private static class BddHolder{
-        private static final Bdd uniqueInstance = new Bdd();
-    }
-
-    public static Bdd getInstance(){
-        return BddHolder.uniqueInstance;
-    }
-
     public void connect() {
         driver = GraphDatabase.driver("neo4j+s://d02c7c37.databases.neo4j.io", AuthTokens.basic("neo4j", "DVzcvsyY872krNWP-XTYIphLfvB5i8hvHVO2U2BczLo"));
         session = driver.session();
