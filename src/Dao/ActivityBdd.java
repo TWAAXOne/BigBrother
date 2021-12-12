@@ -19,6 +19,4 @@ public class ActivityBdd {
         }
         System.out.println("Fin de la création des activités");
     }
-
-
 }

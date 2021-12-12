@@ -2,6 +2,7 @@ import Dao.*;
 
 public class Main {
     public static void main(String[] args) {
+        // Lancement de la création de la base donnée.
         createDataBase();
     }
 
