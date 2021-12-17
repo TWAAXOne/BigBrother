@@ -4,6 +4,7 @@ import Domaine.Person;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Value;
+import org.neo4j.driver.exceptions.NoSuchRecordException;
 import org.neo4j.driver.types.Node;
 import org.neo4j.driver.types.Path;
 
@@ -11,77 +12,152 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        // Lancement de la création de la base donnée.
-        //createDataBase();
-        trouverUnePersonnePratiquantUneActivite("Ellen", "Staterfield", "Vélo");
-        RecomendationActivite("Queenie", "Gaitskell");
-    }
-
-    public static void trouverUnePersonnePratiquantUneActivite(String firstName, String lastname, String activity) {
+        /*
+        Zone de test:
         Bdd bdd = new Bdd();
         bdd.connect();
-        // todo: Ne fonctionne pas avec les liens directs mais seulement avec les relations amical
-        Result result = bdd.run("match " +
-                "(p:Person{first_name:'" + firstName + "', last_name:'" + lastname + "'}), " +
-                "(a:Activity{name:'" + activity + "'}), " +
-                "path = shortestPath((p)-[*..10]-(a))" +
-                "WHERE ANY(r in relationships(path) where type(r) = 'AMIS_AVEC')" +
-                "return path, a");
-        Path path = result.single().get("path").asPath();
-        List<Person> lstPersonne = new ArrayList<>();
-        Activity a = null;
-        for (Node node: path.nodes()) {
-            if (node.hasLabel("Person")) {
-                lstPersonne.add(new Person(node.get("first_name").asString(), node.get("last_name").asString(),
-                        node.get("birth_date").asString(), node.get("address").asString(), node.get("gender").asString(),
-                        node.get("phone").asString(), node.get("email").asString()));
-            } else {
-                a = new Activity(node.get("name").asString());
-            }
-        }
-        Person firstPersonne = lstPersonne.get(0);
-        System.out.println("Monsieur " +  firstPersonne.getFirstName() + " " + firstPersonne.getLastName() + " cherche à faire du " + a.getName());
-        System.out.println("Il doit contacter: ");
-        for (int c = 1; c < lstPersonne.size(); c++) {
-            System.out.println("   - " + lstPersonne.get(c));
-        }
+        firstRequestBdd(bdd, "Ellen", "Staterfield", "Tennis");
+        bdd.close();
+        */
 
+        applicationRun();
+    }
+
+    public static void applicationRun() {
+        System.out.println("Bienvenue sur Big Brother");
+        System.out.println("   - 0 : Reinitialiser la bdd (! prend du temps)");
+        System.out.println("   - 1 : Requête 1");
+        System.out.println("   - 2 : Requête 2");
+        int action = 9999;
+        while (!Arrays.asList(1, 2, 3, 4).contains(action)) {
+            System.out.println("Entrer un nombre entre 0 et 4:");
+            Scanner obj = new Scanner(System.in);
+            action = obj.nextInt();
+        }
+        Bdd bdd = new Bdd();
+        bdd.connect();
+        switch (action) {
+            case 0: createDataBase(bdd);
+            case 1:
+                firstRequestRunning(bdd);
+                break;
+            case 2:
+                secondRequestRunning(bdd);
+                break;
+        }
         bdd.close();
     }
 
-    public static void RecomendationActivite(String firstName, String lastName) {
-        Bdd bdd = new Bdd();
-        bdd.connect();
-        Result res = bdd.run("MATCH " +
-                "(pPers:Person{first_name:'" + firstName + "', last_name:'" + lastName + "'})," +
-                "rPersAmis=(pPers)-[:AMIS_AVEC*..4]->(pAmis)," +
-                "rAmisActivity=(pAmis)-[:PRATIQUE]->(activity)" +
-                "RETURN pPers, activity");
-        List<Activity> lst = new ArrayList<>();
-        Value infopPers = res.peek().get(0);
-        Person person = new Person(infopPers.get("first_name").asString(), infopPers.get("last_name").asString(),
-                infopPers.get("birth_date").asString(), infopPers.get("address").asString(),
-                infopPers.get("gender").asString(), infopPers.get("phone").asString(), infopPers.get("email").asString());
+    public static void firstRequestRunning(Bdd bdd) {
+        System.out.println("Entrez votre prénom, nom et l'activité");
+        Scanner obj = new Scanner(System.in);
+        String firstName = obj.nextLine();
+        if (Objects.equals(firstName, "")) { firstName = "Ellen"; }
+        String lastName = obj.nextLine();
+        if (Objects.equals(lastName, "")) { lastName = "Staterfield"; }
+        String activity = obj.nextLine();
+        if (Objects.equals(activity, "")) { activity = "Tennis"; }
+        firstRequestBdd(bdd, firstName, lastName, activity);
+    }
 
-        while (res.hasNext()) {
-            Record rec = res.next();
-            String activityName = rec.get(1).get("name").asString();
-            Activity activity;
-            if (hasActivity(lst, activityName)) {
-                activity = getActivity(lst, activityName);
-            } else {
-                activity = new Activity(activityName);
-                lst.add(activity);
+    public static void firstRequestBdd(Bdd bdd, String firstName, String lastName, String activity) {
+        try {
+            Record record = bdd.run("match " +
+                    "(p:Person{first_name:'" + firstName + "', last_name:'" + lastName + "'}), " +
+                    "(a:Activity{name:'" + activity + "'}), " +
+                    "path = shortestPath((p)-[*..10]-(a))" +
+                    "WHERE ANY(r in relationships(path) where type(r) = 'AMIS_AVEC')" +
+                    "return p, path, a").next();
+            // Personne
+            Value p = record.get("p");
+            Person person = new Person(p.get("first_name").asString(), p.get("last_name").asString(), p.get("birth_date").asString(),
+                    p.get("address").asString(), p.get("gender").asString(), p.get("phone").asString(), p.get("email").asString());
+            Person premiereP = person;
+            // Activité recherché
+            Value a = record.get("a");
+            Activity act = new Activity(a.get("name").asString());
+            // Relation amis
+            Path path = record.get("path").asPath();
+            for (Node node : path.nodes()) {
+                // On vérifie que ca soit des personne puis différent du premier car sinon il est compté deux fois
+                if (node.hasLabel("Person") && !Objects.equals(node.get("first_name").asString(), person.getFirstName()) && !Objects.equals(node.get("last_name"), person.getLastName())) {
+                    Person pUser = new Person(node.get("first_name").asString(), node.get("last_name").asString(),
+                            node.get("birth_date").asString(), node.get("address").asString(), node.get("gender").asString(),
+                            node.get("phone").asString(), node.get("email").asString());
+                    person.addAmis(pUser);
+                    person = pUser;
+                }
             }
-            activity.addNb();
+            person.addActivity(act);
+            firstRequestAffichage(premiereP, act);
+        } catch (NoSuchRecordException e) {
+            System.out.println("Les données entrés sont incorrectes");
         }
+    }
+
+    public static void firstRequestAffichage(Person premiereP, Activity activity) {
+        System.out.println("Monsieur " + premiereP.getFirstName() + " " + premiereP.getLastName() + " cherche à faire du " + activity.getName());
+        System.out.println("Il doit contacter: ");
+
+        Person pers = premiereP.getFirstFriend();
+        while (pers.hasFriend()) {
+            System.out.println("   - " + pers);
+            pers = pers.getFirstFriend();
+            if (pers.hasActivity()) {
+                System.out.println("   -> " + pers);
+            }
+        }
+    }
+
+
+    public static void secondRequestRunning(Bdd bdd) {
+        System.out.println("Entrez votre prénom et nom");
+        Scanner obj = new Scanner(System.in);
+        String firstName = obj.nextLine();
+        if (Objects.equals(firstName, "")) { firstName = "Queenie"; }
+        String lastName = obj.nextLine();
+        if (Objects.equals(lastName, "")) { lastName = "Gaitskell"; }
+        secondeRequestBdd(bdd, firstName, lastName);
+    }
+
+    public static void secondeRequestBdd(Bdd bdd, String firstName, String lastName) {
+        try {
+            Result res = bdd.run("MATCH " +
+                    "(pPers:Person{first_name:'" + firstName + "', last_name:'" + lastName + "'})," +
+                    "rPersAmis=(pPers)-[:AMIS_AVEC*..4]->(pAmis)," +
+                    "rAmisActivity=(pAmis)-[:PRATIQUE]->(activity)" +
+                    "RETURN pPers, activity");
+            List<Activity> lst = new ArrayList<>();
+            Value infopPers = res.peek().get(0);
+            Person person = new Person(infopPers.get("first_name").asString(), infopPers.get("last_name").asString(),
+                    infopPers.get("birth_date").asString(), infopPers.get("address").asString(),
+                    infopPers.get("gender").asString(), infopPers.get("phone").asString(), infopPers.get("email").asString());
+
+            while (res.hasNext()) {
+                Record rec = res.next();
+                String activityName = rec.get(1).get("name").asString();
+                Activity activity;
+                if (hasActivity(lst, activityName)) {
+                    activity = getActivity(lst, activityName);
+                } else {
+                    activity = new Activity(activityName);
+                    lst.add(activity);
+                }
+                activity.addNb();
+                secondRequestAffichage(lst, person);
+            }
+        } catch (NoSuchRecordException e) {
+            System.out.println("Les données entrés sont incorrectes");
+        }
+    }
+
+    private static void secondRequestAffichage(List<Activity> lst, Person person) {
         lst.sort(Activity::compareTo);
 
         System.out.println("Les activités proposées pour " + person);
-        for (int c = 0; c < 3 ; c++) {
-            System.out.println("   - " + lst.get(c));
+        for (int c = 0; c < 3; c++) {
+            System.out.println("   - " + lst.get(c).getName() + " : " + lst.get(c).getNb());
         }
-        bdd.close();
     }
 
     private static boolean hasActivity(List<Activity> lst, String activity) {
@@ -103,9 +179,7 @@ public class Main {
     }
 
 
-    public static void createDataBase() {
-        Bdd bdd = new Bdd();
-        bdd.connect();
+    public static void createDataBase(Bdd bdd) {
         PersonBdd personBdd = new PersonBdd(bdd, 1, 4);
         CompanyBdd companyBdd = new CompanyBdd(bdd);
         ActivityBdd activityBdd = new ActivityBdd(bdd);
@@ -120,7 +194,6 @@ public class Main {
         personBdd.createRelationCompany();
         personBdd.createRelationPratique();
         personBdd.createRelationFrequenteRestaurant();
-        bdd.close();
     }
 
 

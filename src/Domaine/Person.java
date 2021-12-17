@@ -1,5 +1,8 @@
 package Domaine;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Person {
     private String firstName;
     private String lastName;
@@ -8,6 +11,8 @@ public class Person {
     private String gender;
     private String phone;
     private String email;
+    private List<Person> amis;
+    private List<Activity> activity;
 
     public Person(String firstName, String lastName, String birthDate, String address, String gender, String phone, String email) {
         this.firstName = firstName;
@@ -17,38 +22,48 @@ public class Person {
         this.gender = gender;
         this.phone = phone;
         this.email = email;
+        this.amis = new ArrayList<>();
+        this.activity = new ArrayList<>();
     }
 
     public String getFirstName() {
         return firstName;
     }
-
-    public String getLastName() {
-        return lastName;
-    }
-
+    public String getLastName() { return lastName;}
     public String getBirthDate() {
         return birthDate;
     }
-
     public String getAddress() {
         return address;
     }
-
     public String getGender() {
         return gender;
     }
-
     public String getPhone() {
         return phone;
     }
+    public String getEmail() { return email; }
+    public Person getFirstFriend() {
+        return this.amis.get(0);
+    }
+    public Boolean hasFriend() {
+        return this.amis.size() != 0;
+    }
 
-    public String getEmail() {
-        return email;
+    public void addAmis(Person amis) {
+        this.amis.add(amis);
+    }
+
+    public void addActivity(Activity activity) {
+        this.activity.add(activity);
     }
 
     @Override
     public String toString() {
         return firstName + ' ' + lastName;
+    }
+
+    public boolean hasActivity() {
+        return this.activity.size() != 0;
     }
 }
