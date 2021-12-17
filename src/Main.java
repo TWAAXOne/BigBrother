@@ -29,7 +29,7 @@ public class Main {
         System.out.println("   - 1 : Requête 1");
         System.out.println("   - 2 : Requête 2");
         int action = 9999;
-        while (!Arrays.asList(1, 2, 3, 4).contains(action)) {
+        while (!Arrays.asList(0, 1, 2, 3, 4).contains(action)) {
             System.out.println("Entrer un nombre entre 0 et 4:");
             Scanner obj = new Scanner(System.in);
             action = obj.nextInt();
@@ -38,6 +38,7 @@ public class Main {
         bdd.connect();
         switch (action) {
             case 0: createDataBase(bdd);
+                break;
             case 1:
                 firstRequestRunning(bdd);
                 break;
@@ -52,11 +53,11 @@ public class Main {
         System.out.println("Entrez votre prénom, nom et l'activité");
         Scanner obj = new Scanner(System.in);
         String firstName = obj.nextLine();
-        if (Objects.equals(firstName, "")) { firstName = "Ellen"; }
+        if (Objects.equals(firstName, "")) { firstName = "Marius"; }
         String lastName = obj.nextLine();
-        if (Objects.equals(lastName, "")) { lastName = "Staterfield"; }
+        if (Objects.equals(lastName, "")) { lastName = "MacConnechie"; }
         String activity = obj.nextLine();
-        if (Objects.equals(activity, "")) { activity = "Tennis"; }
+        if (Objects.equals(activity, "")) { activity = "Basketball"; }
         firstRequestBdd(bdd, firstName, lastName, activity);
     }
 
@@ -155,7 +156,7 @@ public class Main {
         lst.sort(Activity::compareTo);
 
         System.out.println("Les activités proposées pour " + person);
-        for (int c = 0; c < 3; c++) {
+        for (int c = 0; c < lst.size(); c++) {
             System.out.println("   - " + lst.get(c).getName() + " : " + lst.get(c).getNb());
         }
     }

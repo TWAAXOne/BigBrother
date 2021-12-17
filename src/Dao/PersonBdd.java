@@ -102,7 +102,7 @@ public class PersonBdd{
         deleteRelationPratique();
         System.out.println("Création des relations Personne - Activity");
         for (String[] dataPersonne : getListPerson()) {
-            int nbActivity = new Random().nextInt(3) + 1;
+            int nbActivity = new Random().nextInt(2) + 1;
             for (int c = 1; c <= nbActivity; c++) {
                 int noActivity = new Random().nextInt(ActivityBdd.getListActivity().size());
                 String[] activity = ActivityBdd.getListActivity().get(noActivity);
