@@ -19,7 +19,6 @@ public class Main {
         firstRequestBdd(bdd, "Ellen", "Staterfield", "Tennis");
         bdd.close();
         */
-
         applicationRun();
     }
 
@@ -28,6 +27,7 @@ public class Main {
         System.out.println("   - 0 : Reinitialiser la bdd (! prend du temps)");
         System.out.println("   - 1 : Requête 1");
         System.out.println("   - 2 : Requête 2");
+        System.out.println("   - 3 : Requête 3");
         int action = 9999;
         while (!Arrays.asList(0, 1, 2, 3, 4).contains(action)) {
             System.out.println("Entrer un nombre entre 0 et 4:");
@@ -44,6 +44,9 @@ public class Main {
                 break;
             case 2:
                 secondRequestRunning(bdd);
+                break;
+            case 3:
+                thirdRequestRunning(bdd);
                 break;
         }
         bdd.close();
@@ -179,6 +182,64 @@ public class Main {
         throw new RuntimeException("L'activité n'existe pas");
     }
 
+    public static void thirdRequestRunning(Bdd bdd) {
+        System.out.println("Entrez le prénom, nom de départ");
+        Scanner obj = new Scanner(System.in);
+
+        String firstName1 = obj.nextLine();
+        if (Objects.equals(firstName1, "")) { firstName1 = "Maximilien"; }
+        String lastName1 = obj.nextLine();
+        if (Objects.equals(lastName1, "")) { lastName1 = "Gabbitus"; }
+
+        System.out.println("Entrez le prénom, nom de fin");
+        Scanner obj2 = new Scanner(System.in);
+
+        String firstName2 = obj2.nextLine();
+        if (Objects.equals(firstName2, "")) { firstName2 = "Augie"; }
+        String lastName2 = obj2.nextLine();
+        if (Objects.equals(lastName2, "")) { lastName2 = "Francois"; }
+
+        thirdRequestBdd(bdd, firstName1, lastName1, firstName2, lastName2);
+    }
+
+    public static void thirdRequestBdd(Bdd bdd, String firstName1, String lastName1, String firstName2, String lastName2) {
+        try {
+            Record record = bdd.run("match (p:Person{first_name:'" + firstName1 + "', last_name:'" + lastName1 + "'}), " +
+                " path = shortestPath((p)-[:AMIS_AVEC*..10]-(:Person{first_name:'" + firstName2 + "', last_name:'" + lastName2 + "'})) " +
+                " return p, path").next();
+
+            // Personne
+            Value p = record.get("p");
+            Person person = new Person(p.get("first_name").asString(), p.get("last_name").asString(), p.get("birth_date").asString(),
+                    p.get("address").asString(), p.get("gender").asString(), p.get("phone").asString(), p.get("email").asString());
+            Person premiereP = person;
+            // Path
+            Path path = record.get("path").asPath();
+            for (Node node : path.nodes()) {
+                if (!Objects.equals(node.get("first_name").asString(), person.getFirstName()) && !Objects.equals(node.get("last_name"), person.getLastName())) {
+                    Person pUser = new Person(node.get("first_name").asString(), node.get("last_name").asString(),
+                            node.get("birth_date").asString(), node.get("address").asString(), node.get("gender").asString(),
+                            node.get("phone").asString(), node.get("email").asString());
+                    person.addAmis(pUser);
+                    person = pUser;
+                }
+            }
+            thirdRequestAffichage(premiereP, person);
+
+        } catch (NoSuchRecordException e) {
+            System.out.println("Les données entrés sont incorrectes");
+        }
+    }
+
+    public static void thirdRequestAffichage(Person p1, Person p2) {
+        System.out.println("Monsieur " + p1 + " cherche à contacter " + p2);
+        System.out.println("Il doit contacter: ");
+
+        for (Person p = p1.getFirstFriend(); p!=p2 ; p=p.getFirstFriend()) {
+            System.out.println("   - " + p);
+        }
+        System.out.println("   -> " + p2);
+    }
 
     public static void createDataBase(Bdd bdd) {
         PersonBdd personBdd = new PersonBdd(bdd, 1, 4);
