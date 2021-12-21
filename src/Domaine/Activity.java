@@ -6,7 +6,7 @@ public class Activity implements Comparable<Activity> {
 
     public Activity(String name) {
         this.name = name;
-        this.nb = 1;
+        this.nb = 0;
     }
 
     @Override

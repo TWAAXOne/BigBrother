@@ -1,7 +1,5 @@
 package Dao;
 
-import org.neo4j.driver.Result;
-
 import java.util.List;
 
 public class CompanyBdd{
@@ -14,16 +12,21 @@ public class CompanyBdd{
 
     public static List<String[]> getListCompany() { return Bdd.getList(FILENAME_LST_COMPANY); }
 
+    public void deleteRelationCompany() {
+        bdd.run("MATCH p=()-[r:TRAVAILLE]->() delete r");
+    }
+
     public void deleteCompanyBdd() {
         System.out.println("Suppression des compagnies");
         bdd.run("MATCH (c:Company) DELETE c");
     }
     public void createBddActivity() {
+        deleteRelationCompany();
         deleteCompanyBdd();
         System.out.println("Création des compagnies");
-        for (int c = 0; c < 200; c++) {
+        for (int c = 0; c < getListCompany().size(); c++) {
             String[] data = getListCompany().get(c);
-            Result res = bdd.run("CREATE (p:Company{" +
+            bdd.run("CREATE (p:Company{" +
                     "company_name:'" + data[0]+ "'" +
                     ", industry:'" + data[1] + "'" +
                     ", stock_market:'" + data[2] + "'" +

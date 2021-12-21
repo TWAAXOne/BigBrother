@@ -37,4 +37,8 @@ public class Bdd {
     public Result run(String insrt) {
         return session.run(insrt);
     }
+
+    public void deleteDataBase() {
+        this.run("match (n) detach delete n");
+    }
 }

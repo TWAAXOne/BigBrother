@@ -242,7 +242,8 @@ public class Main {
     }
 
     public static void createDataBase(Bdd bdd) {
-        PersonBdd personBdd = new PersonBdd(bdd, 1, 4);
+        bdd.deleteDataBase();
+        PersonBdd personBdd = new PersonBdd(bdd);
         CompanyBdd companyBdd = new CompanyBdd(bdd);
         ActivityBdd activityBdd = new ActivityBdd(bdd);
         RestaurantBdd restaurantBdd = new RestaurantBdd(bdd);

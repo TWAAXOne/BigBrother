@@ -1,33 +1,22 @@
 package Dao;
 
-import org.neo4j.driver.Result;
-
 import java.util.List;
 import java.util.Random;
 
 public class PersonBdd{
     private static final String FILENAME = "personne_data.csv";
     private Bdd bdd;
-    private int nbAmisMin;
-    private int nbAmisMax;
 
-    public PersonBdd(Bdd bdd, int nbAmisMin, int nbAmisMax) {
+    public PersonBdd(Bdd bdd) {
         this.bdd = bdd;
-        this.nbAmisMin = nbAmisMin;
-        this.nbAmisMax = nbAmisMax;
     }
 
     public static List<String[]> getListPerson() { return Bdd.getList(FILENAME); }
 
-    public void deleteUserBdd() {
-        System.out.println("Suppression des personnes");
-        bdd.run("MATCH (p:Person) DELETE p");
-    }
     public void createUser() {
-        deleteRelation();
         System.out.println("Création des personnes");
         for (String[] data : getListPerson()) {
-            Result res = bdd.run("CREATE (p:Person{" +
+            bdd.run("CREATE (p:Person{" +
                     "first_name:'" + data[0]+ "'" +
                     ", last_name:'" + data[1] + "'" +
                     ", email:'" + data[2] + "'" +
@@ -40,32 +29,11 @@ public class PersonBdd{
         System.out.println("Fin créations personnes");
     }
 
-    public void deleteRelation() {
-        bdd.run("MATCH p=()-->() DELETE p");
-    }
-
-    public void deleteRelationFriend() {
-        bdd.run("MATCH p=()-[r:AMIS_AVEC]->() DELETE r");
-    }
-
-    public void deleteRelationCompany() {
-        bdd.run("MATCH p=()-[r:TRAVAILLE]->() DELETE r");
-    }
-
-    public void deleteRelationPratique() {
-        bdd.run("MATCH p=()-[r:PRATIQUE]->() DELETE r");
-    }
-
-    public void deleteRelationFrequenteRestaurant() {
-        bdd.run("MATCH p=()-[r:FREQUENTE_RESTAURANT]->() DELETE r");
-    }
-
     public void createRelationFriend() {
-        deleteRelationFriend();
         System.out.println("Création des relations Friend");
         for (String[] data : getListPerson()) {
-            int nbAmis = new Random().nextInt(nbAmisMax) + nbAmisMin;  // [1...5] [min = 1, max = 5]);
-            for (int c = nbAmisMin; c <= nbAmis; c++) {
+            int nbAmis = new Random().nextInt(4) + 1;  // [1...5] [min = 1, max = 5]);
+            for (int c = 1; c <= nbAmis; c++) {
                 int noAmis = new Random().nextInt(getListPerson().size());
                 String[] dataAmis = getListPerson().get(noAmis);
                 bdd.run("MATCH(p1:Person{" +
@@ -82,7 +50,6 @@ public class PersonBdd{
     }
 
     public void createRelationCompany() {
-        deleteRelationCompany();
         System.out.println("Création des relations Personne - Compagnie");
         for (String[] dataPersonne : getListPerson()) {
             int noCompany = new Random().nextInt(CompanyBdd.getListCompany().size());
@@ -99,7 +66,6 @@ public class PersonBdd{
     }
 
     public void createRelationPratique() {
-        deleteRelationPratique();
         System.out.println("Création des relations Personne - Activity");
         for (String[] dataPersonne : getListPerson()) {
             int nbActivity = new Random().nextInt(2) + 1;
@@ -120,7 +86,6 @@ public class PersonBdd{
 
 
     public void createRelationFrequenteRestaurant() {
-        deleteRelationFrequenteRestaurant();
         System.out.println("Création des relations Personne - Restaurant");
         for (String[] dataPersonne : getListPerson()) {
             int nbRestaurant = new Random().nextInt(3) + 1;

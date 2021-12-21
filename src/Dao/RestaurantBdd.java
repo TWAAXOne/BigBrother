@@ -13,16 +13,10 @@ public class RestaurantBdd {
         this.bdd = bdd;
     }
 
-    public void deleteBddRestaurant() {
-        System.out.println("Suppression des restaurants");
-        bdd.run("MATCH (r:Restaurant) DELETE r");
-    }
-
     public void createRestaurant() {
-        deleteBddRestaurant();
         System.out.println("Création des restaurants");
         for (String[] dataRestaurant : getListRestaurant()) {
-            Result res = bdd.run("CREATE (p:Restaurant{" +
+            bdd.run("CREATE (p:Restaurant{" +
                     "name:'" + dataRestaurant[0]+ "'" +
                     ", legalName:'" + dataRestaurant[1] + "'" +
                     ", categoryLabel:'" + dataRestaurant[2] + "'" +
