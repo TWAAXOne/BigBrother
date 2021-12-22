@@ -1,6 +1,7 @@
 import Dao.*;
 import Domaine.Activity;
 import Domaine.Person;
+import Domaine.Restaurant;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.Value;
@@ -28,6 +29,7 @@ public class Main {
         System.out.println("   - 1 : Requête 1");
         System.out.println("   - 2 : Requête 2");
         System.out.println("   - 3 : Requête 3");
+        System.out.println("    -4 : Requête 4");
         int action = 9999;
         while (!Arrays.asList(0, 1, 2, 3, 4).contains(action)) {
             System.out.println("Entrer un nombre entre 0 et 4:");
@@ -48,9 +50,12 @@ public class Main {
             case 3:
                 thirdRequestRunning(bdd);
                 break;
+            case 4:
+                fourthRequestRunning(bdd);
         }
         bdd.close();
     }
+
 
     public static void firstRequestRunning(Bdd bdd) {
         System.out.println("Entrez votre prénom, nom et l'activité");
@@ -239,6 +244,75 @@ public class Main {
             System.out.println("   - " + p);
         }
         System.out.println("   -> " + p2);
+    }
+
+    private static void fourthRequestRunning(Bdd bdd) {
+        System.out.println("Entrez votre prénom et nom");
+        Scanner obj = new Scanner(System.in);
+        String firstName = obj.nextLine();
+        if (Objects.equals(firstName, "")) { firstName = "Marcello"; }
+        String lastName = obj.nextLine();
+        if (Objects.equals(lastName, "")) { lastName = "Raikes"; }
+        fourthRequestBdd(bdd, firstName, lastName);
+    }
+
+    public static void fourthRequestBdd(Bdd bdd, String firstName, String lastName) {
+        try {
+            Result res = bdd.run("MATCH " +
+                    "(pPers:Person{first_name:'" + firstName + "', last_name:'" + lastName + "'})," +
+                    "(pPers)-[:TRAVAILLE]->(pCompany)," +
+                    "(pCompany)<-[:TRAVAILLE]-(pPerson)," +
+                    "(pPerson)-[:FREQUENTE_RESTAURANT]->(rRest)"+
+                    "RETURN  pPers,pCompany,pPerson,rRest");
+            List<Restaurant> lst = new ArrayList<>();
+            Value infopPers = res.peek().get(0);
+            Person person = new Person(infopPers.get("first_name").asString(), infopPers.get("last_name").asString(),
+                    infopPers.get("birth_date").asString(), infopPers.get("address").asString(),
+                    infopPers.get("gender").asString(), infopPers.get("phone").asString(), infopPers.get("email").asString());
+
+            while (res.hasNext()) {
+                Record rec = res.next();
+                String RestaurantName = rec.get(4).get("name").asString();
+                Restaurant restaurant;
+                if (hasRestaurant(lst, RestaurantName)) {
+                    restaurant = getRestaurant(lst, RestaurantName);
+                } else {
+                    restaurant = new Restaurant(RestaurantName);
+                    lst.add(restaurant);
+                }
+                restaurant.addNb();
+            }
+            fourthRequestAffichage(lst, person);
+        } catch (NoSuchRecordException e) {
+            System.out.println("Les données entrés sont incorrectes");
+        }
+    }
+
+    private static boolean hasRestaurant(List<Restaurant> lst, String restaurant) {
+        for (Restaurant rest: lst) {
+            if (Objects.equals(rest.getName(), restaurant)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Restaurant getRestaurant(List<Restaurant> lst, String restaurant) {
+        for (Restaurant rest: lst) {
+            if (Objects.equals(rest.getName(), restaurant)) {
+                return rest;
+            }
+        }
+        throw new RuntimeException("Le restaurant n'existe pas");
+    }
+
+    private static void fourthRequestAffichage(List<Restaurant> lst, Person person) {
+        lst.sort(Restaurant::compareTo);
+
+        System.out.println("Les restaurants proposées pour " + person);
+        for (int c = 0; c < (Math.min(lst.size(), 3)); c++) {
+            System.out.println("   - " + lst.get(c).getName());
+        }
     }
 
     public static void createDataBase(Bdd bdd) {
