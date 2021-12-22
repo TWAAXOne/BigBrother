@@ -148,8 +148,8 @@ public class Main {
                     lst.add(activity);
                 }
                 activity.addNb();
-                secondRequestAffichage(lst, person);
             }
+            secondRequestAffichage(lst, person);
         } catch (NoSuchRecordException e) {
             System.out.println("Les données entrés sont incorrectes");
         }
@@ -159,8 +159,8 @@ public class Main {
         lst.sort(Activity::compareTo);
 
         System.out.println("Les activités proposées pour " + person);
-        for (int c = 0; c < lst.size(); c++) {
-            System.out.println("   - " + lst.get(c).getName() + " : " + lst.get(c).getNb());
+        for (int c = 0; c < (Math.min(lst.size(), 3)); c++) {
+            System.out.println("   - " + lst.get(c).getName());
         }
     }
 
