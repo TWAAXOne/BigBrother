@@ -13,6 +13,7 @@ public class Person {
     private String email;
     private List<Person> amis;
     private List<Activity> activity;
+    private Company company;
 
     public Person(String firstName, String lastName, String birthDate, String address, String gender, String phone, String email) {
         this.firstName = firstName;
@@ -49,6 +50,7 @@ public class Person {
     public Boolean hasFriend() {
         return this.amis.size() != 0;
     }
+    public Company getCompany() { return this.company; }
 
     public void addAmis(Person amis) {
         this.amis.add(amis);
@@ -57,6 +59,7 @@ public class Person {
     public void addActivity(Activity activity) {
         this.activity.add(activity);
     }
+    public void setCompany(Company company) { this.company = company; }
 
     @Override
     public String toString() {
@@ -65,5 +68,9 @@ public class Person {
 
     public boolean hasActivity() {
         return this.activity.size() != 0;
+    }
+
+    public boolean hasCompany() {
+        return this.company != null;
     }
 }

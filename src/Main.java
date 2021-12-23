@@ -1,5 +1,6 @@
 import Dao.*;
 import Domaine.Activity;
+import Domaine.Company;
 import Domaine.Person;
 import Domaine.Restaurant;
 import org.neo4j.driver.Record;
@@ -13,23 +14,16 @@ import java.util.*;
 
 public class Main {
     public static void main(String[] args) {
-        /*
-        Zone de test:
-        Bdd bdd = new Bdd();
-        bdd.connect();
-        firstRequestBdd(bdd, "Ellen", "Staterfield", "Tennis");
-        bdd.close();
-        */
         applicationRun();
     }
 
     public static void applicationRun() {
         System.out.println("Bienvenue sur Big Brother");
         System.out.println("   - 0 : Reinitialiser la bdd (! prend du temps)");
-        System.out.println("   - 1 : Requête 1");
-        System.out.println("   - 2 : Requête 2");
-        System.out.println("   - 3 : Requête 3");
-        System.out.println("    -4 : Requête 4");
+        System.out.println("   - 1 : Rechercher le chemin d'une personne à une entreprise");
+        System.out.println("   - 2 : Recommandation d'une activité à une personne");
+        System.out.println("   - 3 : Partir d'une personne trouvé le chemin jusqu'à une autre personne");
+        System.out.println("   - 4 : Recommandation d'un restaurant à partir des collègues d'une même entreprise");
         int action = 9999;
         while (!Arrays.asList(0, 1, 2, 3, 4).contains(action)) {
             System.out.println("Entrer un nombre entre 0 et 4:");
@@ -58,34 +52,33 @@ public class Main {
 
 
     public static void firstRequestRunning(Bdd bdd) {
-        System.out.println("Entrez votre prénom, nom et l'activité");
         Scanner obj = new Scanner(System.in);
+        System.out.println("Entrez votre prénom: ");
         String firstName = obj.nextLine();
-        if (Objects.equals(firstName, "")) { firstName = "Marius"; }
+        if (Objects.equals(firstName, "")) { firstName = "Jayne"; }
+        System.out.println("Entrez votre nom: ");
         String lastName = obj.nextLine();
-        if (Objects.equals(lastName, "")) { lastName = "MacConnechie"; }
-        String activity = obj.nextLine();
-        if (Objects.equals(activity, "")) { activity = "Basketball"; }
-        firstRequestBdd(bdd, firstName, lastName, activity);
+        if (Objects.equals(lastName, "")) { lastName = "Lober"; }
+        System.out.println("Entrez l'entreprise recherché: ");
+        String company = obj.nextLine();
+        if (Objects.equals(company, "")) { company = "Sotherly Hotels LP"; }
+        firstRequestBdd(bdd, firstName, lastName, company);
     }
 
     public static void firstRequestBdd(Bdd bdd, String firstName, String lastName, String activity) {
         try {
-            Record record = bdd.run("match " +
-                    "(p:Person{first_name:'" + firstName + "', last_name:'" + lastName + "'}), " +
-                    "(a:Activity{name:'" + activity + "'}), " +
-                    "path = shortestPath((p)-[*..10]-(a))" +
-                    "WHERE ANY(r in relationships(path) where type(r) = 'AMIS_AVEC')" +
-                    "return p, path, a").next();
+            Record record = bdd.run("match (p:Person{first_name:'"+firstName+"', last_name:'"+lastName + "'}), " +
+                    "(c:Company{company_name:'"+activity+"'})," +
+                    "path = shortestpath((p)-[:AMIS_AVEC|TRAVAILLE*..20]-(c))" +
+                    "return p, path, c").next();
             // Personne
             Value p = record.get("p");
             Person person = new Person(p.get("first_name").asString(), p.get("last_name").asString(), p.get("birth_date").asString(),
                     p.get("address").asString(), p.get("gender").asString(), p.get("phone").asString(), p.get("email").asString());
             Person premiereP = person;
-            // Activité recherché
-            Value a = record.get("a");
-            Activity act = new Activity(a.get("name").asString());
-            // Relation amis
+            // Company
+            Company company = null;
+            // Path
             Path path = record.get("path").asPath();
             for (Node node : path.nodes()) {
                 // On vérifie que ca soit des personne puis différent du premier car sinon il est compté deux fois
@@ -93,37 +86,53 @@ public class Main {
                     Person pUser = new Person(node.get("first_name").asString(), node.get("last_name").asString(),
                             node.get("birth_date").asString(), node.get("address").asString(), node.get("gender").asString(),
                             node.get("phone").asString(), node.get("email").asString());
-                    person.addAmis(pUser);
+                    if (company == null) { // Si il n'y a pas de company, on ajoute à l'amis précédent
+                        person.addAmis(pUser);
+                    } else { // Sinon, on ajoute la personne dans la liste des travailleur dans l'entreprise
+                        company.addListOfWorker(pUser);
+                        company = null;
+                    }
                     person = pUser;
+                } else if(node.hasLabel("Company")) {
+                    company = new Company(node.get("company_name").asString(), node.get("industry").asString(),
+                            node.get("stock_market").asString(), node.get("sector").asString(), node.get("address").asString());
+                    person.setCompany(company);
                 }
             }
-            person.addActivity(act);
-            firstRequestAffichage(premiereP, act);
+            firstRequestAffichage(premiereP, company);
         } catch (NoSuchRecordException e) {
             System.out.println("Les données entrés sont incorrectes");
         }
     }
 
-    public static void firstRequestAffichage(Person premiereP, Activity activity) {
-        System.out.println("Monsieur " + premiereP.getFirstName() + " " + premiereP.getLastName() + " cherche à faire du " + activity.getName());
-        System.out.println("Il doit contacter: ");
+    public static void firstRequestAffichage(Person person, Company company) {
+        System.out.println("Monsieur " + person + " cherche à entrer en contact avec l'entreprise: " + company);
+        System.out.println("Chemin: ");
 
-        Person pers = premiereP.getFirstFriend();
-        while (pers.hasFriend()) {
-            System.out.println("   - " + pers);
-            pers = pers.getFirstFriend();
-            if (pers.hasActivity()) {
-                System.out.println("   -> " + pers);
+        while (person != null) {
+            System.out.println("   -" + person);
+            if (person.hasFriend()) {
+                person = person.getFirstFriend();
+            }
+            else if (person.hasCompany()) {
+                Company comp = person.getCompany();
+                System.out.println("    -> Travaille dans " + comp);
+                if (comp.hasWorker()) {
+                    person = comp.getFirstWorker();
+                } else {
+                    person = null;
+                }
             }
         }
     }
 
 
     public static void secondRequestRunning(Bdd bdd) {
-        System.out.println("Entrez votre prénom et nom");
         Scanner obj = new Scanner(System.in);
+        System.out.println("Entrez votre prénom");
         String firstName = obj.nextLine();
         if (Objects.equals(firstName, "")) { firstName = "Queenie"; }
+        System.out.println("Entrez votre nom");
         String lastName = obj.nextLine();
         if (Objects.equals(lastName, "")) { lastName = "Gaitskell"; }
         secondeRequestBdd(bdd, firstName, lastName);
@@ -188,19 +197,22 @@ public class Main {
     }
 
     public static void thirdRequestRunning(Bdd bdd) {
-        System.out.println("Entrez le prénom, nom de départ");
         Scanner obj = new Scanner(System.in);
 
+        System.out.println("Entrez le prénom de départ");
         String firstName1 = obj.nextLine();
         if (Objects.equals(firstName1, "")) { firstName1 = "Maximilien"; }
+
+        System.out.println("Entrez le nom de départ");
         String lastName1 = obj.nextLine();
         if (Objects.equals(lastName1, "")) { lastName1 = "Gabbitus"; }
 
-        System.out.println("Entrez le prénom, nom de fin");
         Scanner obj2 = new Scanner(System.in);
 
+        System.out.println("Entrez le prénom de fin");
         String firstName2 = obj2.nextLine();
         if (Objects.equals(firstName2, "")) { firstName2 = "Augie"; }
+        System.out.println("Entrez le nom de fin");
         String lastName2 = obj2.nextLine();
         if (Objects.equals(lastName2, "")) { lastName2 = "Francois"; }
 
@@ -247,10 +259,11 @@ public class Main {
     }
 
     private static void fourthRequestRunning(Bdd bdd) {
-        System.out.println("Entrez votre prénom et nom");
         Scanner obj = new Scanner(System.in);
+        System.out.println("Entrez votre prénom");
         String firstName = obj.nextLine();
         if (Objects.equals(firstName, "")) { firstName = "Marcello"; }
+        System.out.println("Entrez votre nom");
         String lastName = obj.nextLine();
         if (Objects.equals(lastName, "")) { lastName = "Raikes"; }
         fourthRequestBdd(bdd, firstName, lastName);
@@ -272,7 +285,7 @@ public class Main {
 
             while (res.hasNext()) {
                 Record rec = res.next();
-                String RestaurantName = rec.get(4).get("name").asString();
+                String RestaurantName = rec.get(3).get("name").asString();
                 Restaurant restaurant;
                 if (hasRestaurant(lst, RestaurantName)) {
                     restaurant = getRestaurant(lst, RestaurantName);
@@ -332,6 +345,4 @@ public class Main {
         personBdd.createRelationPratique();
         personBdd.createRelationFrequenteRestaurant();
     }
-
-
 }
